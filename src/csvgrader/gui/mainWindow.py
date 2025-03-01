@@ -166,7 +166,7 @@ class MainWindow:
         tab.grid_columnconfigure(0, weight=6)
         tab.grid_columnconfigure(1, weight=4)
         tab.grid_columnconfigure(2, weight=4)
-        tab.grid_columnconfigure(3, weight=1) 
+        tab.grid_columnconfigure(3, weight=1)
 
         rFrame = ttk.Labelframe(tab, text="Rubric")
         #tab.add(rFrame)
@@ -174,8 +174,34 @@ class MainWindow:
         rFrame.grid(row=0, column=0, sticky="NSWE")
         rFrame.grid_columnconfigure(0, weight=1)
         rFrame.grid_columnconfigure(1, weight=2)
+
+        # create sub-canvas in the rubric column
+        # (This scrollbar solution based on Google AI overview for search "tkinter add scrollbar to frame")
+        rCanvas = Canvas(rFrame)
+        rCanvas.pack(side="left", fill="both", expand=True)
+
+        # also create scroll bar and connect the canvas and scrollbar
+        rubric_scroll = ttk.Scrollbar(rFrame, orient="vertical", command=rCanvas.yview)
+        rubric_scroll.pack(side="right", fill="y")
+        rCanvas.configure(yscrollcommand=rubric_scroll.set)
+        rCanvas.configure(scrollregion=rCanvas.bbox("all"))
         
-        self.displayRubric(rFrame)
+        # create rubric-subframe which is now scrollable
+        rSubFrame = ttk.Frame(rCanvas)
+        rCanvas.create_window((0,0), window=rSubFrame, anchor="nw")
+
+        # Bind events to Functions to update scroll region and
+        # scrollbar when scrolling anywhere on canvas.
+        rSubFrame.bind(
+            "<Configure>", 
+            lambda event: rCanvas.configure(scrollregion=rCanvas.bbox("all"))
+        )
+        rCanvas.bind_all(
+            "<MouseWheel>",
+            lambda event: rCanvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        )
+
+        self.displayRubric(rSubFrame)  # display rubric is run in the sub-frame
 
         # Then display student info
         iFrame = ttk.Labelframe(tab, text="Student Info")

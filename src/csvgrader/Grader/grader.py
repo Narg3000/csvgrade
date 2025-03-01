@@ -127,6 +127,8 @@ class Grader:
                 print(f"failed NID{netid}")
         self.numStudents = len(self.studentsSubmitted)
         print(self.numStudents, self.currentStudent)
+        if self.numStudents == 0:
+            raise RuntimeError("Can't start grading with no submissions in folder")
 
     def GenRubricItems(self):
         """Generate a rubric from the gradebook file as formatted by MyPhysics. 
