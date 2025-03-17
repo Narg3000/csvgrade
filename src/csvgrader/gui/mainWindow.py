@@ -2,8 +2,8 @@ from tkinter import *
 from tkinter import ttk, filedialog, simpledialog, messagebox
 import os
 import webbrowser
-from dataforms.teams import Groups
-from Grader.grader import Grader
+from ..dataforms.teams import Groups
+from ..Grader.grader import Grader
 
 import pandas as pd
 

@@ -92,8 +92,7 @@ maintainers = [
 # For an analysis of this field vs pip's requirements files see:
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
-    "pandas",
-    "tkinter"
+    "pandas"
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -126,8 +125,8 @@ test = ["pytest"]
 # 
 # TODO: Setup these scripts
 #
-# [project.scripts]
-# grade = "csvgrader:grade"
+[project.gui-scripts]
+grade-gui = "csvgrader:mainGUI"  # this needs to be a callable function
 
 
 # This is configuration specific to the `setuptools` build backend.

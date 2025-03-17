@@ -39,8 +39,6 @@ You can run this software from `src/csvgrade/mainGUI.py` as the entry point.
 - First/last name display/add by capability in group editor
 
 
-
-
 ## Installation
 
 Can be installed after cloning the repo using
@@ -48,5 +46,41 @@ Can be installed after cloning the repo using
 
 Please note that this requires python >3.7 and has not been tested on less than 3.13!
 
+Once installed, the program may be run in either of the following
+manners:
+
+**Run the package folder**
+This uses src/csvgrader/\_\_main\_\_.py, and does not require installing,
+only the dependencies need to be installed (pandas, or see `requirements.txt`)
+```shell
+python -m [path/to/src/]csvgrader
+```
+
+**Run the provided script**
+If you install the package, the installation process will create an
+executable script grade-gui (grade-gui.exe on Windows) in a location
+on the executable search PATH, which can be
+run from the command line or a file explorer.
+
 ## Developers
 You can install the package as editable using the `-e` flag in pip
+
+
+## Groups CSV file
+
+The CSV file passed in the third field of the GUI grading configuration tab
+must have the headers `NetID` and `Group` in the first line (exact capitalization),
+and following lines have individual student netids and an integer
+specifying their group:
+```text
+NetID,Group,(More info ignored)
+jsmith2,1
+jsmith9999,1,(why are ther so many John Smiths?)
+jd57,2
+ayago7,2
+```
+
+In addition, any information in columns further left of the second
+column is ignored, and may at present be used for comments (see
+parenthetical examples)
+

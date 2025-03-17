@@ -2,7 +2,7 @@ import os
 from tkinter import *
 from tkinter import ttk, filedialog
 
-from Grader import Grader
+from __mangled__Grader import Grader
 
 rubric = {"1":{"1_1":"fail", "2_1":"ish", "3_1":"pass"}, "2":{"1_3":"fail", "2_2":"ish", "3_2":"pass"}}
 
