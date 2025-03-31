@@ -2,3 +2,6 @@
 __pycache__
 build
 .vscode
+
+# ignore the user-specific memory file which is generated
+src/csvgrader/memory.json

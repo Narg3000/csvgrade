@@ -2,6 +2,9 @@ from tkinter import *
 from tkinter import ttk, filedialog, simpledialog, messagebox
 import os
 import webbrowser
+from pathlib import Path
+import json
+
 from dataforms.teams import Groups
 from Grader.grader import Grader
 
@@ -23,7 +26,20 @@ DEFAULTPATH = os.path.expanduser("~")
 
 class MainWindow:
 
+    __retained_paths = [
+        "gbook_path",   # these are all Tkinter Variable instances
+        "submission_path",
+        "groups_path",
+    ]
 
+    __retained_switches = [
+        "createGroupsBtnState",
+        "groupGradeBtnState",
+    ]
+
+    # File will be stored in src/csvgrader (the 1th parent of this file
+    # in present layout).
+    __retain_file = Path(__file__).resolve().parents[1] / "memory.json"
 
 
     ###################################################################
@@ -31,6 +47,8 @@ class MainWindow:
     ###################################################################
 
     def __init__(self):
+
+        self._load_memory()
 
         # State variables used (non Tk)
         self.gbLoad=False
@@ -50,8 +68,6 @@ class MainWindow:
         # FOR TESTING ONLY
         #for gid, nid in grp.items():
         #    self.groups.addGroup(groupID=gid, students=nid)
-    
-
 
         self.root = Tk()
         self.root.title("Grading Program!")
@@ -65,6 +81,13 @@ class MainWindow:
         self.frm.grid_columnconfigure(0,weight=1)
         
         # Tk state variables
+        # Move these here so we can init them based on memory.
+        self.gbook_path = StringVar(value=self.memory["gbook_path"])
+        self.submission_path = StringVar(value=self.memory["submission_path"])
+        self.groups_path = StringVar(value=self.memory["groups_path"])
+        self.createGroupsBtnState = IntVar(value=self.memory["createGroupsBtnState"])
+        self.groupGradeBtnState = IntVar(value=self.memory["groupGradeBtnState"])
+
 
         self._newgroups_state = StringVar(value="open") # If new groups are being created 
         self._selectedGroup = [None,""] # (gid, netid)
@@ -97,8 +120,33 @@ class MainWindow:
         self.configureTab(self.config)
         #self.gradeTab(self.grade)
 
-        
+    def _load_memory(self):
+        try:
+            with open(self.__retain_file, "r") as f:
+                self.memory = json.load(f)
+        except FileNotFoundError:
+            self.memory = {}
 
+        # substitute suitable defaults if nothing there:
+        # (value is None or dict was just created)
+        for key in self.__retained_paths:
+            self.memory[key] = self.memory.get(key, DEFAULTPATH)
+
+        for key in self.__retained_switches:
+            self.memory[key] = self.memory.get(key, 0)
+
+        return self.memory
+
+    def _save_memory(self):
+        for attr in self.__retained_paths + self.__retained_switches:
+            # grad the atrribute, which is a tkinter Variable instance, and
+            # use its "get" function to retrieve current underlying value.
+            self.memory[attr] = getattr(self, attr).get()
+        
+        with open(self.__retain_file, "w") as f:
+            json.dump(self.memory, fp=f, indent=4)
+        
+        return self.memory
 
 
     def configureTab(self, tab:ttk.Frame):
@@ -112,11 +160,10 @@ class MainWindow:
 
         ttk.Label(gbFrame, text="Gradebook CSV Path").grid(row=1, column=2, sticky="NWE")
 
-##################################################################
-        self.gbook_path = StringVar(value=t_filepath)
-##################################################################
         ttk.Entry(gbFrame, textvariable=self.gbook_path, width=50).grid(row=2, column=1, columnspan = 4, sticky="NWE")
-        ttk.Button(gbFrame, text="Select File", command=lambda: self.getPaths(self.gbook_path)).grid(row=2, column=6, sticky=(N,W))
+        ttk.Button(gbFrame, text="Select File",
+                   command=lambda: self.getPaths(self.gbook_path, title="Select Gradebook CSV")
+        ).grid(row=2, column=6, sticky=(N,W))
         # ttk.Button(gbFrame, text="Load Gradebook", command=self.loadGradeBook).grid(row=3, column=2, columnspan=2, sticky="N")
 
         aFrame = ttk.Frame(tab)
@@ -125,11 +172,10 @@ class MainWindow:
 
 
         ttk.Label(aFrame, text="Assignment Directory").grid(row=1, column=2, sticky="NWE")
-############################################################################################
-        self.submission_path = StringVar(value=t_submitpath)
-############################################################################################
         ttk.Entry(aFrame, textvariable=self.submission_path, width=50).grid(row=2, column=1, columnspan = 4, sticky="NWE")
-        ttk.Button(aFrame, text="Select Directory", command=lambda: self.getPaths(self.submission_path, mode="dir")).grid(row=2, column=6, sticky=(N,W))
+        ttk.Button(aFrame, text="Select Directory",
+                   command=lambda: self.getPaths(self.submission_path, mode="dir", title="Select Assignments Directory")
+        ).grid(row=2, column=6, sticky=(N,W))
         # ttk.Button(aFrame, text="Load Submissions", command=self.loadSubmissions).grid(row=3, column=2, columnspan=2, sticky="N")
 
         grFrame = ttk.Frame(tab)
@@ -137,15 +183,17 @@ class MainWindow:
         tab.grid_rowconfigure(2, weight=1)
 
         ttk.Label(grFrame, text="Group Import").grid(row=1, column=2, sticky="NWE")
-        self.groups_path = StringVar(value=os.getcwd())
 
         # If we are creating new groups this will change the behavior of the 
 
 
         ttk.Entry(grFrame, textvariable=self.groups_path, width=50).grid(row=2, column=1, columnspan = 4, sticky="NWE")
-        ttk.Button(grFrame, text="Select CSV File", command=lambda: self.getPaths(self.groups_path, mode="csv")).grid(row=2, column=6, sticky=(N,W))
+        ttk.Button(grFrame, text="Select CSV File",
+                   command=lambda: self.getPaths(self.groups_path, mode="csv", title="Select Groups CSV File")
+        ).grid(row=2, column=6, sticky=(N,W))
+
         # ttk.Button(grFrame, text="Load Groups", command=self.genGroups).grid(row=3, column=2, sticky="NEW")
-        self.groupButton = ttk.Checkbutton(grFrame)
+        self.groupButton = ttk.Checkbutton(grFrame, variable=self.createGroupsBtnState)
         self.groupButton.grid(row=3, column=4, sticky="NW")
         ttk.Label(grFrame, text="Generate New Groups").grid(row=3, column=2, columnspan=2, sticky=E)
 
@@ -153,10 +201,20 @@ class MainWindow:
         ttk.Button(tab, text="Start Grading", command=self.enableGrading).grid(row=3, column=0, sticky="NW")
         tab.grid_rowconfigure(3, weight=1)
 
-        self.groupGradeBtn = ttk.Checkbutton(tab, text="Grade by Group ")
+        self.groupGradeBtn = ttk.Checkbutton(
+            tab,
+            text="Grade by Group ",
+            variable=self.groupGradeBtnState
+        )
         self.groupGradeBtn.grid(row=3, column=2, sticky="nw")
 
-        
+        # Add a button to trigger memory saves.
+        ttk.Button(
+            tab,
+            text="Save State",
+            command=self._save_memory,
+        ).grid(row=0, column=2, sticky="ne")
+    
 
     def gradeTab(self, tab):
 
@@ -412,7 +470,7 @@ class MainWindow:
 
 
     
-    def getPaths(self, stvar:StringVar, mode:str="csv", ):
+    def getPaths(self, stvar:StringVar, mode:str="csv", title:str="Please Select ..."):
         """Get path to open a file
 
         Args:
@@ -420,10 +478,30 @@ class MainWindow:
             mode (str, optional): csv file or directory. Defaults to "csv".
         """
         allowedFiles=(("Comma Seperated Value", "*.csv"), ("all files", "*.*"))
+        initial = os.path.realpath(stvar.get())
+        if os.path.isfile(initial):
+            initial = os.path.dirname(initial)
+
         if mode == "csv":
-            stvar.set(filedialog.askopenfilename(parent=self.root, filetypes=allowedFiles, initialdir=DEFAULTPATH))
+            name = filedialog.askopenfilename(
+                parent=self.root,
+                filetypes=allowedFiles,
+                initialdir=initial,
+                title=title,
+            )
         elif mode == "dir":
-            stvar.set(filedialog.askdirectory(parent=self.root, initialdir=DEFAULTPATH))
+            name = filedialog.askdirectory(
+                parent=self.root,
+                initialdir=initial,
+                title=title,
+            )
+
+        # User could hit cancel on the dialog, then name is None,
+        # and we don't want to change our remembered file name.
+        if name:
+            stvar.set(name)
+            self._save_memory() # when we update a path, it should be remembered.
+
     
     def getSavePath(self):
         """Path to save output to 
@@ -487,8 +565,14 @@ class MainWindow:
     def run(self):
         self.root.mainloop()
 
+    def destroy(self):
+        # try to save memory before closing (not sure if this is right?)
+        self._save_memory()
+        self.root.destroy()
+
 
     def enableGrading(self):
+        self._save_memory()
         gradebookpth = self.gbook_path.get()
         submissiondir = self.submission_path.get()
 
